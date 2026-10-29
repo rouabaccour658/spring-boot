@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import tn.esprit.autoloc.domain.Agence;
 import tn.esprit.autoloc.service.IAgenceService;
+import tn.esprit.autoloc.web.dto.AgenceRequest;
 
 @RestController
 @RequestMapping("/api/agences")
@@ -34,13 +35,25 @@ public class AgenceController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Agence create(@RequestBody Agence agence) {
-        return agenceService.create(agence);
+    public Agence create(@RequestBody AgenceRequest request) {
+        return agenceService.create(toAgence(request));
     }
 
     @PutMapping("/{id}")
-    public Agence update(@PathVariable Long id, @RequestBody Agence agence) {
-        return agenceService.update(id, agence);
+    public Agence update(@PathVariable Long id, @RequestBody AgenceRequest request) {
+        return agenceService.update(id, toAgence(request));
+    }
+
+    private Agence toAgence(AgenceRequest request) {
+        if (request == null) {
+            return null;
+        }
+        Agence agence = new Agence();
+        agence.setNom(request.nom());
+        agence.setVille(request.ville());
+        agence.setAdresse(request.adresse());
+        agence.setTelephone(request.telephone());
+        return agence;
     }
 
     @DeleteMapping("/{id}")

@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import tn.esprit.autoloc.domain.Client;
 import tn.esprit.autoloc.service.IClientService;
+import tn.esprit.autoloc.web.dto.ClientRequest;
 
 @Tag(name = "Clients", description = "Gestion des clients")
 @RestController
@@ -51,8 +52,8 @@ public class ClientController {
     })
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Client create(@RequestBody Client client) {
-        return clientService.create(client);
+    public Client create(@RequestBody ClientRequest request) {
+        return clientService.create(toClient(request));
     }
 
     @Operation(summary = "Modifier un client")
@@ -62,8 +63,21 @@ public class ClientController {
             @ApiResponse(responseCode = "404", description = "Client introuvable")
     })
     @PutMapping("/{id}")
-    public Client update(@PathVariable Long id, @RequestBody Client client) {
-        return clientService.update(id, client);
+    public Client update(@PathVariable Long id, @RequestBody ClientRequest request) {
+        return clientService.update(id, toClient(request));
+    }
+
+    private Client toClient(ClientRequest request) {
+        if (request == null) {
+            return null;
+        }
+        Client client = new Client();
+        client.setNom(request.nom());
+        client.setPrenom(request.prenom());
+        client.setEmail(request.email());
+        client.setTelephone(request.telephone());
+        client.setNumPermis(request.numPermis());
+        return client;
     }
 
     @Operation(summary = "Supprimer un client")

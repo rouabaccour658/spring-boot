@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import tn.esprit.autoloc.domain.Contrat;
 import tn.esprit.autoloc.service.IContratService;
+import tn.esprit.autoloc.web.dto.ContratRequest;
 
 @Tag(name = "Contrats", description = "Gestion des contrats de location")
 @RestController
@@ -52,8 +53,8 @@ public class ContratController {
     })
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Contrat create(@RequestBody Contrat contrat) {
-        return contratService.create(contrat);
+    public Contrat create(@RequestBody ContratRequest request) {
+        return contratService.create(toContrat(request));
     }
 
     @Operation(summary = "Modifier un contrat")
@@ -63,8 +64,18 @@ public class ContratController {
             @ApiResponse(responseCode = "404", description = "Contrat introuvable")
     })
     @PutMapping("/{id}")
-    public Contrat update(@PathVariable Long id, @RequestBody Contrat contrat) {
-        return contratService.update(id, contrat);
+    public Contrat update(@PathVariable Long id, @RequestBody ContratRequest request) {
+        return contratService.update(id, toContrat(request));
+    }
+
+    private Contrat toContrat(ContratRequest request) {
+        if (request == null) {
+            return null;
+        }
+        Contrat contrat = new Contrat();
+        contrat.setDateSignature(request.dateSignature());
+        contrat.setMontantTotal(request.montantTotal());
+        return contrat;
     }
 
     @Operation(summary = "Supprimer un contrat")

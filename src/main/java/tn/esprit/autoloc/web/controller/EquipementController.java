@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import tn.esprit.autoloc.domain.Equipement;
 import tn.esprit.autoloc.service.IEquipementService;
+import tn.esprit.autoloc.web.dto.EquipementRequest;
 
 @Tag(name = "Équipements", description = "Gestion des équipements")
 @RestController
@@ -51,8 +52,8 @@ public class EquipementController {
     })
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Equipement create(@RequestBody Equipement equipement) {
-        return equipementService.create(equipement);
+    public Equipement create(@RequestBody EquipementRequest request) {
+        return equipementService.create(toEquipement(request));
     }
 
     @Operation(summary = "Modifier un équipement")
@@ -62,8 +63,17 @@ public class EquipementController {
             @ApiResponse(responseCode = "404", description = "Équipement introuvable")
     })
     @PutMapping("/{id}")
-    public Equipement update(@PathVariable Long id, @RequestBody Equipement equipement) {
-        return equipementService.update(id, equipement);
+    public Equipement update(@PathVariable Long id, @RequestBody EquipementRequest request) {
+        return equipementService.update(id, toEquipement(request));
+    }
+
+    private Equipement toEquipement(EquipementRequest request) {
+        if (request == null) {
+            return null;
+        }
+        Equipement equipement = new Equipement();
+        equipement.setLibelle(request.libelle());
+        return equipement;
     }
 
     @Operation(summary = "Supprimer un équipement")

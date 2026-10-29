@@ -1,7 +1,8 @@
 package tn.esprit.autoloc.service.impl;
 
-import java.util.List;
+import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +34,9 @@ public class ClientServiceImpl implements IClientService {
         if (client.getIdClient() != null) {
             throw new IllegalArgumentException("Un nouveau client ne doit pas avoir d'identifiant");
         }
+        if (client.getDateInscription() == null) {
+            client.setDateInscription(LocalDate.now());
+        }
         client.setReservations(new HashSet<>());
         return clientRepository.save(client);
     }
@@ -49,7 +53,6 @@ public class ClientServiceImpl implements IClientService {
         existant.setEmail(client.getEmail());
         existant.setTelephone(client.getTelephone());
         existant.setNumPermis(client.getNumPermis());
-        existant.setDateInscription(client.getDateInscription());
         return clientRepository.save(existant);
     }
 
