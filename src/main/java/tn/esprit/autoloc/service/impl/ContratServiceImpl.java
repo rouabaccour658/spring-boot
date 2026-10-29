@@ -3,6 +3,7 @@ package tn.esprit.autoloc.service.impl;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import tn.esprit.autoloc.domain.Contrat;
 import tn.esprit.autoloc.exception.ResourceNotFoundException;
 import tn.esprit.autoloc.repository.IContratRepository;
@@ -16,6 +17,9 @@ public class ContratServiceImpl implements IContratService {
 
     @Override
     public Contrat create(Contrat contrat) {
+        if (contrat == null) {
+            throw new IllegalArgumentException("Le contrat est obligatoire");
+        }
         if (contrat.getIdContrat() != null) {
             throw new IllegalArgumentException(
                     "Un nouveau contrat ne doit pas avoir d'identifiant");
@@ -37,6 +41,13 @@ public class ContratServiceImpl implements IContratService {
 
     @Override
     public Contrat update(Long id, Contrat contrat) {
+        if (contrat == null) {
+            throw new IllegalArgumentException("Le contrat est obligatoire");
+        }
+        if (contrat.getIdContrat() != null && !contrat.getIdContrat().equals(id)) {
+            throw new IllegalArgumentException(
+                    "L'identifiant du contrat ne correspond pas à celui de l'URL");
+        }
         valider(contrat);
         Contrat existant = findById(id);
         existant.setDateSignature(contrat.getDateSignature());
@@ -46,11 +57,17 @@ public class ContratServiceImpl implements IContratService {
     }
 
     @Override
+    @Transactional
     public void deleteById(Long id) {
-        if (!contratRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Contrat", id);
+        Contrat contrat = findById(id);
+
+        if (contrat.getReservation() != null) {
+            contrat.getReservation().setContrat(null);
+            contrat.setReservation(null);
         }
-        contratRepository.deleteById(id);
+
+        contrat.getPaiements().clear();
+        contratRepository.delete(contrat);
     }
 
     private void valider(Contrat contrat) {

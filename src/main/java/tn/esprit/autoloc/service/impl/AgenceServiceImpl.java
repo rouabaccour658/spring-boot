@@ -16,6 +16,9 @@ public class AgenceServiceImpl implements IAgenceService {
 
     @Override
     public Agence create(Agence agence) {
+        if (agence == null) {
+            throw new IllegalArgumentException("L'agence est obligatoire");
+        }
         if (agence.getIdAgence() != null) {
             throw new IllegalArgumentException(
                     "Une nouvelle agence ne doit pas avoir d'identifiant");
@@ -36,6 +39,13 @@ public class AgenceServiceImpl implements IAgenceService {
 
     @Override
     public Agence update(Long id, Agence agence) {
+        if (agence == null) {
+            throw new IllegalArgumentException("L'agence est obligatoire");
+        }
+        if (agence.getIdAgence() != null && !agence.getIdAgence().equals(id)) {
+            throw new IllegalArgumentException(
+                    "L'identifiant de l'agence ne correspond pas à celui de l'URL");
+        }
         Agence existante = findById(id);
         existante.setNom(agence.getNom());
         existante.setVille(agence.getVille());

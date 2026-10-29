@@ -1,5 +1,6 @@
 package tn.esprit.autoloc.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -37,7 +38,8 @@ public class Vehicule {
     @Enumerated(EnumType.STRING)
     private StatutVehicule statut;
 
-    @ManyToOne(cascade = CascadeType.ALL)
+    @JsonIgnore
+    @ManyToOne
     private Agence agence;
 
     @OneToMany(mappedBy = "vehicule" , cascade = CascadeType.ALL)
@@ -46,6 +48,6 @@ public class Vehicule {
     @OneToMany(mappedBy = "vehicule", cascade = CascadeType.ALL)
     private Set<Maintenance> maintenances = new HashSet<>();
 
-    @ManyToMany(cascade = CascadeType.ALL)
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private Set<Equipement> equipements = new HashSet<>();
 }

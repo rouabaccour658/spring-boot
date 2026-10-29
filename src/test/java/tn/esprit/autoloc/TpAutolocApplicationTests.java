@@ -8,13 +8,16 @@ import tn.esprit.autoloc.domain.Client;
 import tn.esprit.autoloc.domain.Contrat;
 import tn.esprit.autoloc.domain.Equipement;
 import tn.esprit.autoloc.domain.Maintenance;
+import tn.esprit.autoloc.domain.Paiement;
 import tn.esprit.autoloc.domain.Vehicule;
 import tn.esprit.autoloc.repository.IAgenceRepository;
 import tn.esprit.autoloc.repository.IClientRepository;
 import tn.esprit.autoloc.repository.IContratRepository;
 import tn.esprit.autoloc.repository.IEquipementRepository;
 import tn.esprit.autoloc.repository.IMaintenanceRepository;
+import tn.esprit.autoloc.repository.IPaiementRepository;
 import tn.esprit.autoloc.repository.IVehiculeRepository;
+import tn.esprit.autoloc.service.IContratService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -47,6 +50,12 @@ class TpAutolocApplicationTests {
 
     @Autowired
     private IMaintenanceRepository maintenanceRepository;
+
+    @Autowired
+    private IPaiementRepository paiementRepository;
+
+    @Autowired
+    private IContratService contratService;
 
     @Test
     void contextLoads() {
@@ -225,6 +234,28 @@ class TpAutolocApplicationTests {
 
         contratRepository.deleteById(saved.getIdContrat());
         assertFalse(contratRepository.existsById(saved.getIdContrat()));
+    }
+
+    @Test
+    void supprimerContratSupprimeSesPaiements() {
+        Contrat contrat = new Contrat();
+        contrat.setDateSignature(LocalDate.now());
+        contrat.setMontantTotal(new BigDecimal("450.00"));
+
+        Paiement paiement = new Paiement();
+        paiement.setMontant(new BigDecimal("100.00"));
+        paiement.setDatePaiement(LocalDate.now());
+        contrat.getPaiements().add(paiement);
+        paiement.setContrat(contrat);
+
+        Contrat saved = contratRepository.save(contrat);
+        Long contratId = saved.getIdContrat();
+        Long paiementId = saved.getPaiements().iterator().next().getIdPaiement();
+
+        contratService.deleteById(contratId);
+
+        assertFalse(contratRepository.existsById(contratId));
+        assertFalse(paiementRepository.existsById(paiementId));
     }
 
     @Test
