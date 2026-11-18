@@ -70,9 +70,30 @@ Postman sert à construire et envoyer des requêtes HTTP (méthode, URL, en-têt
 Le signalement communiqué concerne la règle « Database Operations should not be vulnerable to mass assignment » et apparaît deux fois. Il s'agit de deux occurrences du même type de problème, pas de deux catégories SonarQube différentes. Les cas observés étaient :
 
 1. **Client, agence et équipement directement liés au corps HTTP** : les contrôleurs recevaient des entités JPA, ce qui rendait leurs champs techniques ou leurs associations accessibles au binding JSON. **Correction appliquée :** ajout de `ClientRequest`, `AgenceRequest` et `EquipementRequest`, puis copie explicite des seuls champs autorisés vers les entités. La date d'inscription du client est attribuée côté serveur.
-2. **Contrat directement lié au corps HTTP** : le binding sur `Contrat` permettait aussi de fournir des propriétés de gestion, notamment `valide` et les associations `reservation`/`paiements`. **Correction appliquée :** `ContratRequest` n'accepte que la date de signature et le montant. Le statut de validation et les relations ne sont plus modifiables par cette requête ; lors d'une mise à jour, la valeur `valide` déjà enregistrée est conservée.
+2. **Contrat directement lié au corps HTTP** : le binding sur `Contrat` permettait aussi de fournir des propriétés de gestion, notamment `valide` et les associations `reservation`/`paiements`. **Correction appliquée :** `ContratCreateRequest` autorise uniquement la date, le montant et les champs métier d'un paiement (`montant`, `datePaiement`, `modePaiement`) ; le contrôleur crée les paiements et assigne leur contrat parent. `ContratRequest`, utilisé pour la modification, ne contient que la date et le montant. Le statut de validation et les relations ne sont donc pas contrôlables par le client ; lors d'une mise à jour, la valeur `valide` déjà enregistrée est conservée.
 
 Ces DTOs constituent une liste blanche des données modifiables et réduisent l'opération de persistance aux champs explicitement prévus par l'API.
+
+Exemple de corps pour créer un contrat avec deux paiements :
+
+```json
+{
+  "dateSignature": "2026-10-29",
+  "montantTotal": 450.00,
+  "paiements": [
+    {
+      "montant": 200.00,
+      "datePaiement": "2026-10-29",
+      "modePaiement": "CARTE"
+    },
+    {
+      "montant": 250.00,
+      "datePaiement": "2026-10-29",
+      "modePaiement": "VIREMENT"
+    }
+  ]
+}
+```
 
 ## E. Questions de réflexion
 

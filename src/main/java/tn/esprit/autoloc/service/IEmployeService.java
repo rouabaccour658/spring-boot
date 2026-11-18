@@ -10,4 +10,6 @@ public interface IEmployeService {
     Employe create(EmployeRequest request);
     Employe update(Long id, EmployeRequest request);
     void deleteById(Long id);
+    void affecterEmployeAAgence(Long employeId, Long agenceId);
+    void desaffecterEmployeDeAgence(Long employeId);
 }

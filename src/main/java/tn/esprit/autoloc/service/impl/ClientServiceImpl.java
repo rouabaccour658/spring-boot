@@ -10,59 +10,80 @@ import tn.esprit.autoloc.domain.Client;
 import tn.esprit.autoloc.exception.ResourceNotFoundException;
 import tn.esprit.autoloc.repository.IClientRepository;
 import tn.esprit.autoloc.service.IClientService;
+import tn.esprit.autoloc.web.dto.ClientDTO;
+import tn.esprit.autoloc.web.mapper.ClientMapper;
 
 @Service
 @RequiredArgsConstructor
 public class ClientServiceImpl implements IClientService {
 
     private final IClientRepository clientRepository;
+    private final ClientMapper clientMapper;
 
     @Override
-    public List<Client> findAll() {
-        return clientRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<ClientDTO> findAll() {
+        return clientRepository.findAll().stream().map(clientMapper::toDto).toList();
     }
 
     @Override
-    public Client findById(Long id) {
-        return clientRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Client", id));
+    @Transactional(readOnly = true)
+    public ClientDTO findById(Long id) {
+        return clientMapper.toDto(clientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Client", id)));
     }
 
     @Override
-    public Client create(Client client) {
-        valider(client);
-        if (client.getIdClient() != null) {
+    @Transactional
+    public ClientDTO create(ClientDTO clientDto) {
+        valider(clientDto);
+        if (clientDto.getId() != null) {
             throw new IllegalArgumentException("Un nouveau client ne doit pas avoir d'identifiant");
         }
+        Client client = clientMapper.toEntity(clientDto);
         if (client.getDateInscription() == null) {
             client.setDateInscription(LocalDate.now());
         }
         client.setReservations(new HashSet<>());
-        return clientRepository.save(client);
+        return clientMapper.toDto(clientRepository.save(client));
     }
 
     @Override
-    public Client update(Long id, Client client) {
-        valider(client);
-        if (client.getIdClient() != null && !client.getIdClient().equals(id)) {
+    @Transactional
+    public ClientDTO update(Long id, ClientDTO clientDto) {
+        valider(clientDto);
+        if (clientDto.getId() != null && !clientDto.getId().equals(id)) {
             throw new IllegalArgumentException("L'identifiant du client ne correspond pas à l'URL");
         }
-        Client existant = findById(id);
+        Client existant = clientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Client", id));
+        Client client = clientMapper.toEntity(clientDto);
         existant.setNom(client.getNom().trim());
         existant.setPrenom(client.getPrenom().trim());
         existant.setEmail(client.getEmail());
         existant.setTelephone(client.getTelephone());
         existant.setNumPermis(client.getNumPermis());
-        return clientRepository.save(existant);
+        return clientMapper.toDto(clientRepository.save(existant));
     }
 
     @Override
     @Transactional
     public void deleteById(Long id) {
-        clientRepository.delete(findById(id));
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Client", id));
+        client.getReservations().forEach(reservation -> {
+            if (reservation.getVehicule() != null) {
+                reservation.getVehicule().getReservations().remove(reservation);
+            }
+            if (reservation.getContrat() != null) {
+                reservation.getContrat().setReservation(null);
+                reservation.setContrat(null);
+            }
+        });
+        clientRepository.delete(client);
     }
 
-    private void valider(Client client) {
+    private void valider(ClientDTO client) {
         if (client == null || client.getNom() == null || client.getNom().isBlank()
                 || client.getPrenom() == null || client.getPrenom().isBlank()) {
             throw new IllegalArgumentException("Le nom et le prénom du client sont obligatoires");

@@ -55,6 +55,7 @@ public class EquipementServiceImpl implements IEquipementService {
     public void deleteById(Long id) {
         Equipement equipement = findById(id);
         equipement.getVehicules().forEach(vehicule -> vehicule.getEquipements().remove(equipement));
+        equipement.getVehicules().clear();
         vehiculeRepository.flush();
         equipementRepository.delete(equipement);
     }

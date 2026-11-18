@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
 import tn.esprit.autoloc.domain.Employe;
 import tn.esprit.autoloc.service.IEmployeService;
 import tn.esprit.autoloc.web.dto.EmployeRequest;
@@ -77,5 +78,18 @@ public class EmployeController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteById(@PathVariable Long id) {
         employeService.deleteById(id);
+    }
+
+    @PutMapping("/{employeId}/agence/{agenceId}")
+    public ResponseEntity<Void> affecterEmployeAAgence(@PathVariable Long employeId,
+                                                       @PathVariable Long agenceId) {
+        employeService.affecterEmployeAAgence(employeId, agenceId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{employeId}/desaffecter")
+    public ResponseEntity<Void> desaffecterEmployeDeAgence(@PathVariable Long employeId) {
+        employeService.desaffecterEmployeDeAgence(employeId);
+        return ResponseEntity.noContent().build();
     }
 }

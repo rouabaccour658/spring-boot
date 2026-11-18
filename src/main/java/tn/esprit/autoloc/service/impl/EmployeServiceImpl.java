@@ -3,6 +3,8 @@ package tn.esprit.autoloc.service.impl;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import tn.esprit.autoloc.domain.Agence;
 import tn.esprit.autoloc.domain.Employe;
 import tn.esprit.autoloc.exception.ResourceNotFoundException;
 import tn.esprit.autoloc.repository.IAgenceRepository;
@@ -29,6 +31,7 @@ public class EmployeServiceImpl implements IEmployeService {
     }
 
     @Override
+    @Transactional
     public Employe create(EmployeRequest request) {
         valider(request);
         Employe employe = new Employe();
@@ -37,6 +40,7 @@ public class EmployeServiceImpl implements IEmployeService {
     }
 
     @Override
+    @Transactional
     public Employe update(Long id, EmployeRequest request) {
         valider(request);
         Employe employe = findById(id);
@@ -45,16 +49,61 @@ public class EmployeServiceImpl implements IEmployeService {
     }
 
     @Override
+    @Transactional
     public void deleteById(Long id) {
-        employeRepository.delete(findById(id));
+        Employe employe = findById(id);
+        if (employe.getAgence() != null) {
+            employe.getAgence().getEmployes().remove(employe);
+        }
+        employeRepository.delete(employe);
+    }
+
+    @Override
+    @Transactional
+    public void affecterEmployeAAgence(Long employeId, Long agenceId) {
+        Employe employe = employeRepository.findById(employeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employé introuvable, id=" + employeId));
+        Agence agence = agenceRepository.findById(agenceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Agence introuvable, id=" + agenceId));
+        Agence ancienneAgence = employe.getAgence();
+        if (ancienneAgence != null && ancienneAgence != agence) {
+            ancienneAgence.getEmployes().remove(employe);
+        }
+        employe.setAgence(agence);
+        agence.getEmployes().add(employe);
+        employeRepository.save(employe);
+    }
+
+    @Override
+    @Transactional
+    public void desaffecterEmployeDeAgence(Long employeId) {
+        Employe employe = employeRepository.findById(employeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employé introuvable, id=" + employeId));
+        if (employe.getAgence() == null) {
+            throw new IllegalStateException("L'employé n'est affecté à aucune agence");
+        }
+        employe.getAgence().getEmployes().remove(employe);
+        employe.setAgence(null);
+        employeRepository.save(employe);
     }
 
     private void appliquer(Employe employe, EmployeRequest request) {
         employe.setNom(request.nom().trim());
         employe.setPrenom(request.prenom().trim());
         employe.setRole(request.role());
-        employe.setAgence(request.agenceId() == null ? null : agenceRepository.findById(request.agenceId())
-                .orElseThrow(() -> new ResourceNotFoundException("Agence", request.agenceId())));
+        Agence nouvelleAgence =
+                request.agenceId() == null ? null : agenceRepository.findById(request.agenceId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Agence", request.agenceId()));
+        Agence ancienneAgence = employe.getAgence();
+        if (ancienneAgence != nouvelleAgence) {
+            if (ancienneAgence != null) {
+                ancienneAgence.getEmployes().remove(employe);
+            }
+            if (nouvelleAgence != null) {
+                nouvelleAgence.getEmployes().add(employe);
+            }
+            employe.setAgence(nouvelleAgence);
+        }
     }
 
     private void valider(EmployeRequest request) {

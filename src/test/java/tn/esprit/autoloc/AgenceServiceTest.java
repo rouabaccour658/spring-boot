@@ -3,9 +3,9 @@ package tn.esprit.autoloc;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import tn.esprit.autoloc.domain.Agence;
 import tn.esprit.autoloc.exception.ResourceNotFoundException;
 import tn.esprit.autoloc.service.IAgenceService;
+import tn.esprit.autoloc.web.dto.AgenceDTO;
 
 import java.util.List;
 
@@ -24,25 +24,24 @@ class AgenceServiceTest {
         int countAvant = agenceService.findAll().size();
 
         // 1. Création d'une agence
-        Agence agence = new Agence();
-        agence.setNom("Agence Tunis Centre");
-        agence.setVille("Tunis");
-        agence.setAdresse("10 Avenue Habib Bourguiba");
-        agence.setTelephone("71000000");
+        AgenceDTO agence = AgenceDTO.builder()
+                .nom("Agence Tunis Centre")
+                .ville("Tunis")
+                .adresse("10 Avenue Habib Bourguiba")
+                .telephone("71000000")
+                .build();
 
-        // 2. Enregistrement + affichage de l'objet retourné
-        Agence saved = agenceService.create(agence);
-        System.out.println("Agence enregistrée : id=" + saved.getIdAgence()
+        AgenceDTO saved = agenceService.create(agence);
+        System.out.println("Agence enregistrée : id=" + saved.getId()
                 + ", nom=" + saved.getNom() + ", ville=" + saved.getVille());
-        assertNotNull(saved.getIdAgence());
+        assertNotNull(saved.getId());
 
         // 3. Affichage de toutes les agences
-        List<Agence> agences = agenceService.findAll();
+        List<AgenceDTO> agences = agenceService.findAll();
         System.out.println("Liste des agences :");
-        agences.forEach(a -> System.out.println(" - " + a.getIdAgence() + " : " + a.getNom()));
+        agences.forEach(a -> System.out.println(" - " + a.getId() + " : " + a.getNom()));
 
-        // 4. Recherche par id
-        Agence trouvee = agenceService.findById(saved.getIdAgence());
+        AgenceDTO trouvee = agenceService.findById(saved.getId());
         System.out.println("Agence trouvée : " + trouvee.getNom() + " (" + trouvee.getVille() + ")");
         assertEquals("Agence Tunis Centre", trouvee.getNom());
 
@@ -52,10 +51,10 @@ class AgenceServiceTest {
         assertEquals(countAvant + 1, countApres);
 
         // 6. Suppression, puis vérification qu'elle n'existe plus
-        agenceService.deleteById(saved.getIdAgence());
+        agenceService.deleteById(saved.getId());
         assertThrows(ResourceNotFoundException.class,
-                () -> agenceService.findById(saved.getIdAgence()));
-        System.out.println("Agence " + saved.getIdAgence() + " supprimée : introuvable, comme attendu.");
+                () -> agenceService.findById(saved.getId()));
+        System.out.println("Agence " + saved.getId() + " supprimée : introuvable, comme attendu.");
         assertEquals(countAvant, agenceService.findAll().size());
     }
 }

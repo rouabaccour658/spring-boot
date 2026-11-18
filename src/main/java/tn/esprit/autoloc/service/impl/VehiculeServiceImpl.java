@@ -1,21 +1,17 @@
 package tn.esprit.autoloc.service.impl;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import tn.esprit.autoloc.domain.Equipement;
+import tn.esprit.autoloc.domain.Agence;
 import tn.esprit.autoloc.domain.Vehicule;
 import tn.esprit.autoloc.exception.ResourceNotFoundException;
 import tn.esprit.autoloc.repository.IAgenceRepository;
-import tn.esprit.autoloc.repository.IEquipementRepository;
 import tn.esprit.autoloc.repository.IVehiculeRepository;
 import tn.esprit.autoloc.service.IVehiculeService;
-import tn.esprit.autoloc.web.dto.VehiculeRequest;
+import tn.esprit.autoloc.web.dto.VehiculeDTO;
+import tn.esprit.autoloc.web.mapper.VehiculeMapper;
 
 @Service
 @RequiredArgsConstructor
@@ -23,71 +19,126 @@ public class VehiculeServiceImpl implements IVehiculeService {
 
     private final IVehiculeRepository vehiculeRepository;
     private final IAgenceRepository agenceRepository;
-    private final IEquipementRepository equipementRepository;
+    private final VehiculeMapper vehiculeMapper;
 
     @Override
-    public List<Vehicule> findAll() {
-        return vehiculeRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<VehiculeDTO> findAll() {
+        return vehiculeRepository.findAll().stream().map(vehiculeMapper::toDto).toList();
     }
 
     @Override
-    public Vehicule findById(Long id) {
-        return vehiculeRepository.findById(id)
+    @Transactional(readOnly = true)
+    public VehiculeDTO findById(Long id) {
+        return vehiculeMapper.toDto(vehiculeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicule", id)));
+    }
+
+    @Override
+    @Transactional
+    public VehiculeDTO create(VehiculeDTO request) {
+        valider(request);
+        if (request.getId() != null) {
+            throw new IllegalArgumentException("Un nouveau véhicule ne doit pas avoir d'identifiant");
+        }
+        Vehicule vehicule = vehiculeMapper.toEntity(request);
+        associerAgence(vehicule, request.getAgenceId());
+        return vehiculeMapper.toDto(vehiculeRepository.save(vehicule));
+    }
+
+    @Override
+    @Transactional
+    public VehiculeDTO update(Long id, VehiculeDTO request) {
+        valider(request);
+        if (request.getId() != null && !request.getId().equals(id)) {
+            throw new IllegalArgumentException("L'identifiant du véhicule ne correspond pas à l'URL");
+        }
+        Vehicule vehicule = vehiculeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicule", id));
-    }
-
-    @Override
-    @Transactional
-    public Vehicule create(VehiculeRequest request) {
-        valider(request);
-        Vehicule vehicule = new Vehicule();
-        appliquer(vehicule, request);
-        return vehiculeRepository.save(vehicule);
-    }
-
-    @Override
-    @Transactional
-    public Vehicule update(Long id, VehiculeRequest request) {
-        valider(request);
-        Vehicule vehicule = findById(id);
-        appliquer(vehicule, request);
-        return vehiculeRepository.save(vehicule);
+        Vehicule modifications = vehiculeMapper.toEntity(request);
+        vehicule.setImmatriculation(modifications.getImmatriculation().trim());
+        vehicule.setMarque(modifications.getMarque().trim());
+        vehicule.setModele(modifications.getModele().trim());
+        vehicule.setCategorie(modifications.getCategorie());
+        vehicule.setTarifJournalier(modifications.getTarifJournalier());
+        vehicule.setStatut(modifications.getStatut());
+        associerAgence(vehicule, request.getAgenceId());
+        return vehiculeMapper.toDto(vehiculeRepository.save(vehicule));
     }
 
     @Override
     @Transactional
     public void deleteById(Long id) {
-        vehiculeRepository.delete(findById(id));
-    }
-
-    private void appliquer(Vehicule vehicule, VehiculeRequest request) {
-        vehicule.setImmatriculation(request.immatriculation().trim());
-        vehicule.setMarque(request.marque().trim());
-        vehicule.setModele(request.modele().trim());
-        vehicule.setCategorie(request.categorie());
-        vehicule.setTarifJournalier(request.tarifJournalier());
-        vehicule.setStatut(request.statut());
-        vehicule.setAgence(request.agenceId() == null ? null : agenceRepository.findById(request.agenceId())
-                .orElseThrow(() -> new ResourceNotFoundException("Agence", request.agenceId())));
-
-        Set<Long> ids = request.equipementIds() == null ? Set.of() : request.equipementIds();
-        if (ids.stream().anyMatch(Objects::isNull)) {
-            throw new IllegalArgumentException("Un identifiant d'équipement ne peut pas être nul");
+        Vehicule vehicule = vehiculeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicule", id));
+        vehicule.getReservations().forEach(reservation -> {
+            if (reservation.getClient() != null) {
+                reservation.getClient().getReservations().remove(reservation);
+            }
+            if (reservation.getContrat() != null) {
+                reservation.getContrat().setReservation(null);
+                reservation.setContrat(null);
+            }
+        });
+        if (vehicule.getAgence() != null) {
+            vehicule.getAgence().getVehicules().remove(vehicule);
         }
-        Set<Equipement> equipements = ids.stream()
-                .map(id -> equipementRepository.findById(id)
-                        .orElseThrow(() -> new ResourceNotFoundException("Equipement", id)))
-                .collect(Collectors.toCollection(HashSet::new));
-        vehicule.setEquipements(equipements);
+        vehicule.getEquipements().forEach(equipement -> equipement.getVehicules().remove(vehicule));
+        vehicule.getEquipements().clear();
+        vehiculeRepository.delete(vehicule);
     }
 
-    private void valider(VehiculeRequest request) {
-        if (request == null || request.immatriculation() == null || request.immatriculation().isBlank()
-                || request.marque() == null || request.marque().isBlank()
-                || request.modele() == null || request.modele().isBlank()
-                || request.categorie() == null || request.statut() == null
-                || request.tarifJournalier() == null
-                || request.tarifJournalier().signum() < 0) {
+    @Override
+    @Transactional
+    public void affecterVehiculeAAgence(Long vehiculeId, Long agenceId) {
+        Vehicule vehicule = vehiculeRepository.findById(vehiculeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Véhicule introuvable, id=" + vehiculeId));
+        Agence agence = agenceRepository.findById(agenceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Agence introuvable, id=" + agenceId));
+        Agence ancienneAgence = vehicule.getAgence();
+        if (ancienneAgence != null && ancienneAgence != agence) {
+            ancienneAgence.getVehicules().remove(vehicule);
+        }
+        vehicule.setAgence(agence);
+        agence.getVehicules().add(vehicule);
+        vehiculeRepository.save(vehicule);
+    }
+
+    @Override
+    @Transactional
+    public void desaffecterVehiculeDeAgence(Long vehiculeId) {
+        Vehicule vehicule = vehiculeRepository.findById(vehiculeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Véhicule introuvable, id=" + vehiculeId));
+        if (vehicule.getAgence() == null) {
+            throw new IllegalStateException("Le véhicule n'est affecté à aucune agence");
+        }
+        vehicule.getAgence().getVehicules().remove(vehicule);
+        vehicule.setAgence(null);
+        vehiculeRepository.save(vehicule);
+    }
+
+    private void associerAgence(Vehicule vehicule, Long agenceId) {
+        Agence nouvelleAgence = agenceId == null ? null : agenceRepository.findById(agenceId)
+                .orElseThrow(() -> new ResourceNotFoundException("Agence", agenceId));
+        Agence ancienneAgence = vehicule.getAgence();
+        if (ancienneAgence != nouvelleAgence) {
+            if (ancienneAgence != null) {
+                ancienneAgence.getVehicules().remove(vehicule);
+            }
+            if (nouvelleAgence != null) {
+                nouvelleAgence.getVehicules().add(vehicule);
+            }
+            vehicule.setAgence(nouvelleAgence);
+        }
+    }
+
+    private void valider(VehiculeDTO request) {
+        if (request == null || request.getImmatriculation() == null || request.getImmatriculation().isBlank()
+                || request.getMarque() == null || request.getMarque().isBlank()
+                || request.getModele() == null || request.getModele().isBlank()
+                || request.getCategorie() == null || request.getStatut() == null
+                || request.getTarifJournalier() == null
+                || request.getTarifJournalier().signum() < 0) {
             throw new IllegalArgumentException("Les champs obligatoires du véhicule sont invalides");
         }
     }
