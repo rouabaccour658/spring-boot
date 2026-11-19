@@ -17,6 +17,8 @@ import tn.esprit.autoloc.web.mapper.AgenceMapper;
 @RequiredArgsConstructor
 public class AgenceServiceImpl implements IAgenceService {
 
+    private static final String AGENCE_ENTITY_NAME = "Agence";
+
     private final IAgenceRepository agenceRepository;
     private final AgenceMapper agenceMapper;
 
@@ -26,7 +28,7 @@ public class AgenceServiceImpl implements IAgenceService {
         if (agence == null) {
             throw new IllegalArgumentException("L'agence est obligatoire");
         }
-        if (agence.getId() != null) {
+        if (agence.getIdAgence() != null) {
             throw new IllegalArgumentException(
                     "Une nouvelle agence ne doit pas avoir d'identifiant");
         }
@@ -37,7 +39,7 @@ public class AgenceServiceImpl implements IAgenceService {
     @Transactional(readOnly = true)
     public AgenceDTO findById(Long id) {
         return agenceMapper.toDto(agenceRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Agence", id)));
+                .orElseThrow(() -> new ResourceNotFoundException(AGENCE_ENTITY_NAME, id)));
     }
 
     @Override
@@ -52,12 +54,12 @@ public class AgenceServiceImpl implements IAgenceService {
         if (agence == null) {
             throw new IllegalArgumentException("L'agence est obligatoire");
         }
-        if (agence.getId() != null && !agence.getId().equals(id)) {
+        if (agence.getIdAgence() != null && !agence.getIdAgence().equals(id)) {
             throw new IllegalArgumentException(
                     "L'identifiant de l'agence ne correspond pas à celui de l'URL");
         }
         Agence existante = agenceRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Agence", id));
+                .orElseThrow(() -> new ResourceNotFoundException(AGENCE_ENTITY_NAME, id));
         Agence modifications = agenceMapper.toEntity(agence);
         existante.setNom(modifications.getNom());
         existante.setVille(modifications.getVille());
@@ -70,7 +72,7 @@ public class AgenceServiceImpl implements IAgenceService {
     @Transactional
     public void deleteById(Long id) {
         Agence agence = agenceRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Agence", id));
+                .orElseThrow(() -> new ResourceNotFoundException(AGENCE_ENTITY_NAME, id));
         for (Vehicule vehicule : agence.getVehicules()) {
             vehicule.getEquipements().forEach(equipement -> equipement.getVehicules().remove(vehicule));
             for (Reservation reservation : vehicule.getReservations()) {

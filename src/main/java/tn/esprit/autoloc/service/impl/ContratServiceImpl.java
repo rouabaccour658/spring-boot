@@ -22,6 +22,9 @@ import tn.esprit.autoloc.domain.Paiement;
 @RequiredArgsConstructor
 public class ContratServiceImpl implements IContratService {
 
+    private static final String CONTRAT_ENTITY_NAME = "Contrat";
+    private static final String RESERVATION_ENTITY_NAME = "Reservation";
+
     private final IContratRepository contratRepository;
     private final IReservationRepository reservationRepository;
     private final ContratMapper contratMapper;
@@ -75,7 +78,7 @@ public class ContratServiceImpl implements IContratService {
     @Transactional(readOnly = true)
     public ContratDTO findById(Long id) {
         return contratMapper.toDto(contratRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Contrat", id)));
+                .orElseThrow(() -> new ResourceNotFoundException(CONTRAT_ENTITY_NAME, id)));
     }
 
     @Override
@@ -96,7 +99,7 @@ public class ContratServiceImpl implements IContratService {
         }
         valider(contratDto);
         Contrat existant = contratRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Contrat", id));
+                .orElseThrow(() -> new ResourceNotFoundException(CONTRAT_ENTITY_NAME, id));
         lierReservation(existant, contratDto.getReservationId(), id);
         Contrat modifications = contratMapper.toEntity(contratDto);
         existant.setDateSignature(modifications.getDateSignature());
@@ -109,7 +112,7 @@ public class ContratServiceImpl implements IContratService {
     @Transactional
     public void deleteById(Long id) {
         Contrat contrat = contratRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Contrat", id));
+                .orElseThrow(() -> new ResourceNotFoundException(CONTRAT_ENTITY_NAME, id));
 
         if (contrat.getReservation() != null) {
             contrat.getReservation().setContrat(null);
@@ -137,7 +140,7 @@ public class ContratServiceImpl implements IContratService {
             return;
         }
         Reservation nouvelle = reservationRepository.findById(reservationId)
-                .orElseThrow(() -> new ResourceNotFoundException("Reservation", reservationId));
+                .orElseThrow(() -> new ResourceNotFoundException(RESERVATION_ENTITY_NAME, reservationId));
         if (nouvelle.getContrat() != null
                 && !Objects.equals(nouvelle.getContrat().getIdContrat(), contratId)) {
             throw new IllegalArgumentException("Cette réservation est déjà associée à un contrat");

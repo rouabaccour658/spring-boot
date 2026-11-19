@@ -17,6 +17,8 @@ import tn.esprit.autoloc.web.mapper.ClientMapper;
 @RequiredArgsConstructor
 public class ClientServiceImpl implements IClientService {
 
+    private static final String CLIENT_ENTITY_NAME = "Client";
+
     private final IClientRepository clientRepository;
     private final ClientMapper clientMapper;
 
@@ -30,7 +32,7 @@ public class ClientServiceImpl implements IClientService {
     @Transactional(readOnly = true)
     public ClientDTO findById(Long id) {
         return clientMapper.toDto(clientRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Client", id)));
+                .orElseThrow(() -> new ResourceNotFoundException(CLIENT_ENTITY_NAME, id)));
     }
 
     @Override
@@ -56,7 +58,7 @@ public class ClientServiceImpl implements IClientService {
             throw new IllegalArgumentException("L'identifiant du client ne correspond pas à l'URL");
         }
         Client existant = clientRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Client", id));
+                .orElseThrow(() -> new ResourceNotFoundException(CLIENT_ENTITY_NAME, id));
         Client client = clientMapper.toEntity(clientDto);
         existant.setNom(client.getNom().trim());
         existant.setPrenom(client.getPrenom().trim());
@@ -70,7 +72,7 @@ public class ClientServiceImpl implements IClientService {
     @Transactional
     public void deleteById(Long id) {
         Client client = clientRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Client", id));
+                .orElseThrow(() -> new ResourceNotFoundException(CLIENT_ENTITY_NAME, id));
         client.getReservations().forEach(reservation -> {
             if (reservation.getVehicule() != null) {
                 reservation.getVehicule().getReservations().remove(reservation);

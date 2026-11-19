@@ -1,6 +1,7 @@
 package tn.esprit.autoloc.service.impl;
 
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,8 @@ import tn.esprit.autoloc.web.mapper.VehiculeMapper;
 @RequiredArgsConstructor
 public class VehiculeServiceImpl implements IVehiculeService {
 
+    private static final String VEHICULE_ENTITY_NAME = "Vehicule";
+
     private final IVehiculeRepository vehiculeRepository;
     private final IAgenceRepository agenceRepository;
     private final VehiculeMapper vehiculeMapper;
@@ -31,7 +34,7 @@ public class VehiculeServiceImpl implements IVehiculeService {
     @Transactional(readOnly = true)
     public VehiculeDTO findById(Long id) {
         return vehiculeMapper.toDto(vehiculeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicule", id)));
+                .orElseThrow(() -> new ResourceNotFoundException(VEHICULE_ENTITY_NAME, id)));
     }
 
     @Override
@@ -54,7 +57,7 @@ public class VehiculeServiceImpl implements IVehiculeService {
             throw new IllegalArgumentException("L'identifiant du véhicule ne correspond pas à l'URL");
         }
         Vehicule vehicule = vehiculeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicule", id));
+                .orElseThrow(() -> new ResourceNotFoundException(VEHICULE_ENTITY_NAME, id));
         Vehicule modifications = vehiculeMapper.toEntity(request);
         vehicule.setImmatriculation(modifications.getImmatriculation().trim());
         vehicule.setMarque(modifications.getMarque().trim());
@@ -70,7 +73,7 @@ public class VehiculeServiceImpl implements IVehiculeService {
     @Transactional
     public void deleteById(Long id) {
         Vehicule vehicule = vehiculeRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicule", id));
+                .orElseThrow(() -> new ResourceNotFoundException(VEHICULE_ENTITY_NAME, id));
         vehicule.getReservations().forEach(reservation -> {
             if (reservation.getClient() != null) {
                 reservation.getClient().getReservations().remove(reservation);
@@ -81,7 +84,9 @@ public class VehiculeServiceImpl implements IVehiculeService {
             }
         });
         if (vehicule.getAgence() != null) {
-            vehicule.getAgence().getVehicules().remove(vehicule);
+            if (vehicule.getAgence().getVehicules() != null) {
+                vehicule.getAgence().getVehicules().remove(vehicule);
+            }
         }
         vehicule.getEquipements().forEach(equipement -> equipement.getVehicules().remove(vehicule));
         vehicule.getEquipements().clear();
@@ -96,11 +101,15 @@ public class VehiculeServiceImpl implements IVehiculeService {
         Agence agence = agenceRepository.findById(agenceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Agence introuvable, id=" + agenceId));
         Agence ancienneAgence = vehicule.getAgence();
-        if (ancienneAgence != null && ancienneAgence != agence) {
-            ancienneAgence.getVehicules().remove(vehicule);
+        if (ancienneAgence != null && !memesAgences(ancienneAgence, agence)) {
+            if (ancienneAgence.getVehicules() != null) {
+                ancienneAgence.getVehicules().remove(vehicule);
+            }
         }
         vehicule.setAgence(agence);
-        agence.getVehicules().add(vehicule);
+        if (agence.getVehicules() != null) {
+            agence.getVehicules().add(vehicule);
+        }
         vehiculeRepository.save(vehicule);
     }
 
@@ -112,7 +121,9 @@ public class VehiculeServiceImpl implements IVehiculeService {
         if (vehicule.getAgence() == null) {
             throw new IllegalStateException("Le véhicule n'est affecté à aucune agence");
         }
-        vehicule.getAgence().getVehicules().remove(vehicule);
+        if (vehicule.getAgence().getVehicules() != null) {
+            vehicule.getAgence().getVehicules().remove(vehicule);
+        }
         vehicule.setAgence(null);
         vehiculeRepository.save(vehicule);
     }
@@ -121,15 +132,29 @@ public class VehiculeServiceImpl implements IVehiculeService {
         Agence nouvelleAgence = agenceId == null ? null : agenceRepository.findById(agenceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Agence", agenceId));
         Agence ancienneAgence = vehicule.getAgence();
-        if (ancienneAgence != nouvelleAgence) {
+        if (!memesAgences(ancienneAgence, nouvelleAgence)) {
             if (ancienneAgence != null) {
-                ancienneAgence.getVehicules().remove(vehicule);
+                if (ancienneAgence.getVehicules() != null) {
+                    ancienneAgence.getVehicules().remove(vehicule);
+                }
             }
-            if (nouvelleAgence != null) {
+            if (nouvelleAgence != null && nouvelleAgence.getVehicules() != null) {
+                nouvelleAgence.getVehicules().add(vehicule);
+            }
+            vehicule.setAgence(nouvelleAgence);
+        } else if (nouvelleAgence != null) {
+            if (nouvelleAgence.getVehicules() != null) {
                 nouvelleAgence.getVehicules().add(vehicule);
             }
             vehicule.setAgence(nouvelleAgence);
         }
+    }
+
+    private boolean memesAgences(Agence premiere, Agence seconde) {
+        if (premiere == null || seconde == null) {
+            return premiere == null && seconde == null;
+        }
+        return Objects.equals(premiere.getIdAgence(), seconde.getIdAgence());
     }
 
     private void valider(VehiculeDTO request) {

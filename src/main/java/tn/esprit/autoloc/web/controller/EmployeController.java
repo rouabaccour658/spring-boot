@@ -80,7 +80,7 @@ public class EmployeController {
         employeService.deleteById(id);
     }
 
-    @PutMapping("/{employeId}/agence/{agenceId}")
+    @PutMapping({"/{employeId}/agence/{agenceId}", "/{employeId}/affecter/{agenceId}"})
     public ResponseEntity<Void> affecterEmployeAAgence(@PathVariable Long employeId,
                                                        @PathVariable Long agenceId) {
         employeService.affecterEmployeAAgence(employeId, agenceId);

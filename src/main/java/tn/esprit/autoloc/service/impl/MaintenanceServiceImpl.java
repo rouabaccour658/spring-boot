@@ -1,6 +1,7 @@
 package tn.esprit.autoloc.service.impl;
 
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,7 +63,8 @@ public class MaintenanceServiceImpl implements IMaintenanceService {
         Vehicule vehicule = vehiculeRepository.findById(request.vehiculeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicule", request.vehiculeId()));
         Vehicule ancienVehicule = maintenance.getVehicule();
-        if (ancienVehicule != vehicule) {
+        if (ancienVehicule == null
+                || !Objects.equals(ancienVehicule.getIdVehicule(), vehicule.getIdVehicule())) {
             if (ancienVehicule != null) {
                 ancienVehicule.getMaintenances().remove(maintenance);
             }

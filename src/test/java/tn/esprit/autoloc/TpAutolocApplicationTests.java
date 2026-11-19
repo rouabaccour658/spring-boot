@@ -75,29 +75,22 @@ class TpAutolocApplicationTests {
 
         Agence saved = agenceRepository.save(agence);
         assertNotNull(saved.getIdAgence());
-        afficherAgence("Agence enregistrée (save)", saved);
 
         List<Agence> agences = agenceRepository.findAll();
-        System.out.println("=== Liste des agences (findAll) ===");
-        agences.forEach(a -> afficherAgence("Agence", a));
         assertFalse(agences.isEmpty());
 
         Optional<Agence> trouvee = agenceRepository.findById(saved.getIdAgence());
         assertTrue(trouvee.isPresent());
-        afficherAgence("Agence trouvée (findById)", trouvee.get());
         assertEquals("AutoLoc Tunis Centre", trouvee.get().getNom());
 
         boolean existe = agenceRepository.existsById(saved.getIdAgence());
-        System.out.println("existsById(" + saved.getIdAgence() + ") = " + existe);
         assertTrue(existe);
 
         long countApres = agenceRepository.count();
-        System.out.println("Nombre d'agences (count) = " + countApres);
         assertEquals(countAvant + 1, countApres);
 
         agenceRepository.deleteById(saved.getIdAgence());
         boolean existeEncore = agenceRepository.existsById(saved.getIdAgence());
-        System.out.println("Après deleteById, existsById = " + existeEncore);
         assertFalse(existeEncore);
         assertTrue(agenceRepository.findById(saved.getIdAgence()).isEmpty());
         assertEquals(countAvant, agenceRepository.count());
@@ -130,24 +123,17 @@ class TpAutolocApplicationTests {
         assertNotNull(s2.getIdClient());
         assertNotEquals(s1.getIdClient(), s2.getIdClient());
 
-        System.out.println("=== Liste des clients (findAll) ===");
         List<Client> clients = clientRepository.findAll();
-        clients.forEach(c -> System.out.println("Client -> id=" + c.getIdClient()
-                + ", nom=" + c.getNom()
-                + ", prenom=" + c.getPrenom()
-                + ", email=" + c.getEmail()));
         assertFalse(clients.isEmpty());
 
         Optional<Client> trouve = clientRepository.findById(s1.getIdClient());
         assertTrue(trouve.isPresent());
-        System.out.println("Client trouvé (findById) -> " + trouve.get().getNom());
         assertEquals("Ben Ali", trouve.get().getNom());
 
         assertTrue(clientRepository.existsById(s1.getIdClient()));
         assertFalse(clientRepository.existsById(999999L));
 
         long countApres = clientRepository.count();
-        System.out.println("Nombre de clients (count) = " + countApres);
         assertEquals(countAvant + 2, countApres);
     }
 
@@ -164,18 +150,8 @@ class TpAutolocApplicationTests {
 
         Vehicule saved = vehiculeRepository.save(v);
         assertNotNull(saved.getIdVehicule());
-        System.out.println("Véhicule enregistré (save) -> id=" + saved.getIdVehicule()
-                + ", marque=" + saved.getMarque()
-                + ", tarif=" + saved.getTarifJournalier());
-
-        System.out.println("=== Liste des véhicules (findAll) ===");
-        vehiculeRepository.findAll().forEach(x -> System.out.println("Véhicule -> id="
-                + x.getIdVehicule()
-                + ", marque=" + x.getMarque()
-                + ", modele=" + x.getModele()));
 
         long countApres = vehiculeRepository.count();
-        System.out.println("Nombre de véhicules (count) = " + countApres);
         assertEquals(countAvant + 1, countApres);
 
         // Modification d'une propriété puis save()
@@ -183,7 +159,6 @@ class TpAutolocApplicationTests {
         Vehicule modifie = vehiculeRepository.save(saved);
         Optional<Vehicule> relu = vehiculeRepository.findById(modifie.getIdVehicule());
         assertTrue(relu.isPresent());
-        System.out.println("Tarif après modification = " + relu.get().getTarifJournalier());
         assertEquals(0, new BigDecimal("95.00").compareTo(relu.get().getTarifJournalier()));
         assertEquals(countApres, vehiculeRepository.count());
 
@@ -201,12 +176,6 @@ class TpAutolocApplicationTests {
 
         Equipement saved = equipementRepository.save(e);
         assertNotNull(saved.getIdEquipement());
-        System.out.println("Equipement enregistré (save) -> id=" + saved.getIdEquipement()
-                + ", libelle=" + saved.getLibelle());
-
-        System.out.println("=== Liste des équipements (findAll) ===");
-        equipementRepository.findAll().forEach(x -> System.out.println("Equipement -> id="
-                + x.getIdEquipement() + ", libelle=" + x.getLibelle()));
         assertTrue(equipementRepository.existsById(saved.getIdEquipement()));
 
         equipementRepository.deleteById(saved.getIdEquipement());
@@ -222,13 +191,9 @@ class TpAutolocApplicationTests {
 
         Contrat saved = contratRepository.save(c);
         assertNotNull(saved.getIdContrat());
-        System.out.println("Contrat enregistré (save) -> id=" + saved.getIdContrat()
-                + ", montant=" + saved.getMontantTotal()
-                + ", valide=" + saved.isValide());
 
         Optional<Contrat> trouve = contratRepository.findById(saved.getIdContrat());
         assertTrue(trouve.isPresent());
-        System.out.println("Contrat trouvé (findById) -> id=" + trouve.get().getIdContrat());
         assertTrue(trouve.get().isValide());
         assertTrue(contratRepository.existsById(saved.getIdContrat()));
 
@@ -267,12 +232,9 @@ class TpAutolocApplicationTests {
 
         Maintenance saved = maintenanceRepository.save(m);
         assertNotNull(saved.getIdMaintenance());
-        System.out.println("Maintenance enregistrée (save) -> id=" + saved.getIdMaintenance()
-                + ", description=" + saved.getDescription());
 
         Optional<Maintenance> trouvee = maintenanceRepository.findById(saved.getIdMaintenance());
         assertTrue(trouvee.isPresent());
-        System.out.println("Maintenance trouvée (findById) -> id=" + trouvee.get().getIdMaintenance());
         assertEquals("Vidange et contrôle des freins", trouvee.get().getDescription());
         assertTrue(maintenanceRepository.existsById(saved.getIdMaintenance()));
 
@@ -280,11 +242,4 @@ class TpAutolocApplicationTests {
         assertFalse(maintenanceRepository.existsById(saved.getIdMaintenance()));
     }
 
-    private static void afficherAgence(String titre, Agence a) {
-        System.out.println(titre + " -> id=" + a.getIdAgence()
-                + ", nom=" + a.getNom()
-                + ", ville=" + a.getVille()
-                + ", adresse=" + a.getAdresse()
-                + ", telephone=" + a.getTelephone());
-    }
 }

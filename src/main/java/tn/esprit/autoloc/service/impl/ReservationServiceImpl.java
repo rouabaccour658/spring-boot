@@ -1,6 +1,7 @@
 package tn.esprit.autoloc.service.impl;
 
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +22,10 @@ import tn.esprit.autoloc.web.mapper.ReservationMapper;
 @RequiredArgsConstructor
 public class ReservationServiceImpl implements IReservationService {
 
+    private static final String RESERVATION_ENTITY_NAME = "Reservation";
+    private static final String CLIENT_ENTITY_NAME = "Client";
+    private static final String VEHICULE_ENTITY_NAME = "Vehicule";
+
     private final IReservationRepository reservationRepository;
     private final IClientRepository clientRepository;
     private final IVehiculeRepository vehiculeRepository;
@@ -36,7 +41,7 @@ public class ReservationServiceImpl implements IReservationService {
     @Transactional(readOnly = true)
     public ReservationResponseDTO findById(Long id) {
         return reservationMapper.toDto(reservationRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Reservation", id)));
+                .orElseThrow(() -> new ResourceNotFoundException(RESERVATION_ENTITY_NAME, id)));
     }
 
     @Override
@@ -53,7 +58,7 @@ public class ReservationServiceImpl implements IReservationService {
     public ReservationResponseDTO update(Long id, ReservationRequestDTO request) {
         valider(request);
         Reservation reservation = reservationRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Reservation", id));
+                .orElseThrow(() -> new ResourceNotFoundException(RESERVATION_ENTITY_NAME, id));
         Reservation modifications = reservationMapper.toEntity(request);
         appliquer(reservation, request, modifications, false);
         return reservationMapper.toDto(reservationRepository.save(reservation));
@@ -63,7 +68,7 @@ public class ReservationServiceImpl implements IReservationService {
     @Transactional
     public void deleteById(Long id) {
         Reservation reservation = reservationRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Reservation", id));
+                .orElseThrow(() -> new ResourceNotFoundException(RESERVATION_ENTITY_NAME, id));
         if (reservation.getClient() != null) {
             reservation.getClient().getReservations().remove(reservation);
         }
@@ -82,17 +87,17 @@ public class ReservationServiceImpl implements IReservationService {
         Client ancienClient = reservation.getClient();
         Vehicule ancienVehicule = reservation.getVehicule();
         Client client = clientRepository.findById(request.getClientId())
-                .orElseThrow(() -> new ResourceNotFoundException("Client", request.getClientId()));
+                .orElseThrow(() -> new ResourceNotFoundException(CLIENT_ENTITY_NAME, request.getClientId()));
         Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicule", request.getVehiculeId()));
+                .orElseThrow(() -> new ResourceNotFoundException(VEHICULE_ENTITY_NAME, request.getVehiculeId()));
 
-        if (ancienClient != client) {
+        if (ancienClient == null || !Objects.equals(ancienClient.getIdClient(), client.getIdClient())) {
             if (ancienClient != null) {
                 ancienClient.getReservations().remove(reservation);
             }
             client.getReservations().add(reservation);
         }
-        if (ancienVehicule != vehicule) {
+        if (ancienVehicule == null || !Objects.equals(ancienVehicule.getIdVehicule(), vehicule.getIdVehicule())) {
             if (ancienVehicule != null) {
                 ancienVehicule.getReservations().remove(reservation);
             }

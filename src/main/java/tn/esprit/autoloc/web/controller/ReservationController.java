@@ -58,7 +58,7 @@ public class ReservationController {
             @ApiResponse(responseCode = "404", description = "Client ou véhicule introuvable")
     })
     @PostMapping
-    public ResponseEntity<?> create(@Valid @RequestBody ReservationRequestDTO request, BindingResult result) {
+    public ResponseEntity<Object> create(@Valid @RequestBody ReservationRequestDTO request, BindingResult result) {
         reservationRequestValidator.validate(request, result);
         if (result.hasErrors()) {
             Map<String, String> errors = new LinkedHashMap<>();

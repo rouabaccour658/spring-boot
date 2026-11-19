@@ -1,6 +1,7 @@
 package tn.esprit.autoloc.service.impl;
 
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,11 +67,15 @@ public class EmployeServiceImpl implements IEmployeService {
         Agence agence = agenceRepository.findById(agenceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Agence introuvable, id=" + agenceId));
         Agence ancienneAgence = employe.getAgence();
-        if (ancienneAgence != null && ancienneAgence != agence) {
-            ancienneAgence.getEmployes().remove(employe);
+        if (ancienneAgence != null && !memesAgences(ancienneAgence, agence)) {
+            if (ancienneAgence.getEmployes() != null) {
+                ancienneAgence.getEmployes().remove(employe);
+            }
         }
         employe.setAgence(agence);
-        agence.getEmployes().add(employe);
+        if (agence.getEmployes() != null) {
+            agence.getEmployes().add(employe);
+        }
         employeRepository.save(employe);
     }
 
@@ -82,9 +87,11 @@ public class EmployeServiceImpl implements IEmployeService {
         if (employe.getAgence() == null) {
             throw new IllegalStateException("L'employé n'est affecté à aucune agence");
         }
-        employe.getAgence().getEmployes().remove(employe);
+        if (employe.getAgence().getEmployes() != null) {
+            employe.getAgence().getEmployes().remove(employe);
+        }
         employe.setAgence(null);
-        employeRepository.save(employe);
+        employeRepository.saveAndFlush(employe);
     }
 
     private void appliquer(Employe employe, EmployeRequest request) {
@@ -95,15 +102,29 @@ public class EmployeServiceImpl implements IEmployeService {
                 request.agenceId() == null ? null : agenceRepository.findById(request.agenceId())
                         .orElseThrow(() -> new ResourceNotFoundException("Agence", request.agenceId()));
         Agence ancienneAgence = employe.getAgence();
-        if (ancienneAgence != nouvelleAgence) {
+        if (!memesAgences(ancienneAgence, nouvelleAgence)) {
             if (ancienneAgence != null) {
-                ancienneAgence.getEmployes().remove(employe);
+                if (ancienneAgence.getEmployes() != null) {
+                    ancienneAgence.getEmployes().remove(employe);
+                }
             }
-            if (nouvelleAgence != null) {
+            if (nouvelleAgence != null && nouvelleAgence.getEmployes() != null) {
+                nouvelleAgence.getEmployes().add(employe);
+            }
+            employe.setAgence(nouvelleAgence);
+        } else if (nouvelleAgence != null) {
+            if (nouvelleAgence.getEmployes() != null) {
                 nouvelleAgence.getEmployes().add(employe);
             }
             employe.setAgence(nouvelleAgence);
         }
+    }
+
+    private boolean memesAgences(Agence premiere, Agence seconde) {
+        if (premiere == null || seconde == null) {
+            return premiere == null && seconde == null;
+        }
+        return Objects.equals(premiere.getIdAgence(), seconde.getIdAgence());
     }
 
     private void valider(EmployeRequest request) {

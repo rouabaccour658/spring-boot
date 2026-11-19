@@ -78,7 +78,7 @@ public class VehiculeController {
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/{vehiculeId}/agence/{agenceId}")
+    @PutMapping({"/{vehiculeId}/agence/{agenceId}", "/{vehiculeId}/affecter/{agenceId}"})
     public ResponseEntity<Void> affecterVehiculeAAgence(@PathVariable Long vehiculeId,
                                                         @PathVariable Long agenceId) {
         vehiculeService.affecterVehiculeAAgence(vehiculeId, agenceId);
